@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RF Design Suite - Vijaykumaran</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; line-height: 1.5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0,0,0,0.08); }
+        h2 { color: #1a73e8; border-bottom: 2px solid #e8eaed; padding-bottom: 10px; margin-top: 0; text-align: center; }
+        h3 { color: #5f6368; font-size: 1.1em; margin-top: 20px; border-left: 4px solid #1a73e8; padding-left: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.85em; color: #555; }
+        input { width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 6px; box-sizing: border-box; font-size: 0.95em; outline: none; }
+        input:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.1); }
+        .results-section { margin-top: 20px; padding: 15px; border-radius: 8px; border: 1px solid #dadce0; }
+        .tline-bg { background: #f8f9fa; }
+        .patch-bg { background: #e8f0fe; border-color: #d2e3fc; }
+        .loss-bg { background: #fff4f4; border-color: #fad2d2; }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 10px; }
+        .result-item { text-align: center; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 6px; }
+        .result-val { display: block; font-size: 1.2em; font-weight: bold; color: #1a73e8; }
+        .loss-val { color: #d93025; }
+        .result-label { font-size: 0.7em; color: #70757a; text-transform: uppercase; font-weight: bold; }
+        .info-box { margin-top: 20px; font-size: 0.85em; color: #5f6368; background: #fff8e1; padding: 12px; border-left: 4px solid #fbbc04; border-radius: 4px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Patch and Transmission Line Calculator</h2>
+    <p style="text-align: center; color: #777; font-size: 0.9em;">Developed by: Vijaykumaran</p>
+    
+    <div class="grid">
+        <div class="input-section">
+            <h3>Substrate & Material</h3>
+            <div class="input-group">
+                <label>Permittivity (εr)</label>
+                <input type="number" id="er" value="2.33" step="0.01" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Height (H) [mm]</label>
+                <input type="number" id="h" value="0.508" step="0.001" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Conductivity (σ) [S/m]</label>
+                <input type="number" id="sig" value="58000000" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Copper Thickness (t) [mm]</label>
+                <input type="number" id="t" value="0.035" step="0.001" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="input-section">
+            <h3>Line Dimensions</h3>
+            <div class="input-group">
+                <label>Trace Width (W) [mm]</label>
+                <input type="number" id="w" value="0.746" step="0.001" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Trace Length (L) [mm]</label>
+                <input type="number" id="l_len" value="61" step="1" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Superstrate εr (0 for none)</label>
+                <input type="number" id="er2" value="0" step="0.01" oninput="calculate()">
+            </div>
+        </div>
+
+        <div class="input-section">
+            <h3>Target Design</h3>
+            <div class="input-group">
+                <label>Frequency (fo) [GHz]</label>
+                <input type="number" id="fo" value="2.5" step="0.1" oninput="calculate()">
+            </div>
+        </div>
+    </div>
+
+    <div class="results-section tline-bg">
+        <span class="result-label">Transmission Line Analysis</span>
+        <div class="results-grid">
+            <div class="result-item"><span class="result-label">Eff. Permittivity</span><span class="result-val" id="eeff_res">-</span></div>
+            <div class="result-item"><span class="result-label">Impedance (Zo)</span><span class="result-val" id="zo_res">-</span></div>
+            <div class="result-item"><span class="result-label">Line Frequency</span><span class="result-val" id="f_res">-</span></div>
+        </div>
+    </div>
+
+    <div class="results-section loss-bg">
+        <span class="result-label" style="color: #d93025;">Conductor Loss Analysis</span>
+        <div class="results-grid">
+            <div class="result-item"><span class="result-label">Surface Resist. (Rs)</span><span class="result-val loss-val" id="rs_res">-</span></div>
+            <div class="result-item"><span class="result-label">Loss (dB/m)</span><span class="result-val loss-val" id="ac_dbm">-</span></div>
+            <div class="result-item"><span class="result-label">Loss (dB/100mm)</span><span class="result-val loss-val" id="ac_100">-</span></div>
+        </div>
+    </div>
+
+    <div class="results-section patch-bg">
+        <span class="result-label" style="color:#1967d2">Microstrip Patch Dimensions</span>
+        <div class="results-grid">
+            <div class="result-item"><span class="result-label">Width [mm]</span><span class="result-val" id="wp_res">-</span></div>
+            <div class="result-item"><span class="result-label">Length [mm]</span><span class="result-val" id="lp_res">-</span></div>
+            <div class="result-item"><span class="result-label">Eff. εr (Patch)</span><span class="result-val" id="epatch_res">-</span></div>
+        </div>
+    </div>
+
+    <div id="status" class="info-box">W/H ratio status will appear here.</div>
+</div>
+
+<script>
+function calculate() {
+    const W = parseFloat(document.getElementById('w').value);
+    const H = parseFloat(document.getElementById('h').value);
+    const Er = parseFloat(document.getElementById('er').value);
+    const Er2 = parseFloat(document.getElementById('er2').value);
+    const L = parseFloat(document.getElementById('l_len').value);
+    const fo_ghz = parseFloat(document.getElementById('fo').value);
+    const sig = parseFloat(document.getElementById('sig').value);
+    const t = parseFloat(document.getElementById('t').value);
+    
+    const fo_hz = fo_ghz * 1e9;
+    const c = 300; 
+    const u0 = 4 * Math.PI * 1e-7;
+
+    // 1. Transmission Line Logic
+    let Eeff, Zo, statusText;
+    const ratio = W / H;
+    const diffEr = (Er2 === 0) ? (Er - 1) : (Er - Er2);
+
+    if (ratio < 1) {
+        statusText = "W/H < 1";
+        Eeff = ((Er + (Er2||1))/2) + (diffEr/2)*((1/(Math.sqrt(1+12*(H/W))))+(0.04*Math.pow((1-ratio),2)));
+        Zo = (60 / Math.sqrt(Eeff)) * Math.log(8 * (H/W) + 0.25 * ratio);
+    } else {
+        statusText = "W/H ≥ 1";
+        Eeff = ((Er + (Er2||1))/2) + (diffEr/(2*Math.sqrt(1+(12*(H/W)))));
+        Zo = (120 * Math.PI) / (Math.sqrt(Eeff) * (ratio + 1.393 + (2/3) * Math.log(ratio + 1.444)));
+    }
+
+    // 2. Conductor Loss Logic
+    const Rs = Math.sqrt((u0 * fo_hz * Math.PI) / sig);
+    const b = H + H + t; 
+    
+    let ac_db_m = 0;
+    const A_const = 1 + (2*W/(b-t)) + (1/Math.PI)*((b+t)/(b-t)) * Math.log(((2*b)-t)/t);
+    const B_const = 1 + (b/((0.5*W)+(0.7*t))) * (0.5 + (0.414*t/W) + ((1/(2*Math.PI))*Math.log(4*Math.PI*W/t)));
+
+    if (Math.sqrt(Er) * Zo < 120) {
+        let ac_np_mm = (2.7e-3 * Rs * Er * Zo * A_const) / (30 * Math.PI * (b - t));
+        ac_db_m = ac_np_mm * 1000 * 8.686;
+    } else {
+        // Fallback or High Impedance condition
+        ac_db_m = (0.16 * Rs * B_const) / (Zo * b);
+    }
+
+    // 3. Patch Logic
+    const Wp = (c / (2 * fo_ghz)) * Math.sqrt(2 / (Er + 1));
+    const Eeff_patch = ((Er + 1) / 2) + ((Er - 1) / 2) * Math.pow(1 + (12 * H / Wp), -0.5);
+    const dL = H * 0.412 * ((Eeff_patch + 0.3) * (Wp / H + 0.264)) / ((Eeff_patch - 0.258) * (Wp / H + 0.8));
+    const Lp = (c / (2 * fo_ghz * Math.sqrt(Eeff_patch))) - (2 * dL);
+
+    // Update UI
+    document.getElementById('eeff_res').innerText = Eeff.toFixed(4);
+    document.getElementById('zo_res').innerText = Zo.toFixed(2) + " Ω";
+    document.getElementById('f_res').innerText = (c / (L * Math.sqrt(Eeff))).toFixed(4) + " GHz";
+    
+    document.getElementById('rs_res').innerText = Rs.toFixed(4) + " Ω";
+    document.getElementById('ac_dbm').innerText = ac_db_m.toFixed(4);
+    // Updated for 100mm (0.1 meters)
+    document.getElementById('ac_100').innerText = (ac_db_m * 0.1).toFixed(4);
+
+    document.getElementById('wp_res').innerText = Wp.toFixed(3);
+    document.getElementById('lp_res').innerText = Lp.toFixed(3);
+    document.getElementById('epatch_res').innerText = Eeff_patch.toFixed(4);
+    
+    document.getElementById('status').innerText = (Er2===0 ? "No Superstrate" : "Superstrate Active") + " | Ratio: " + ratio.toFixed(3);
+}
+calculate();
+</script>
+</body>
+</html>
